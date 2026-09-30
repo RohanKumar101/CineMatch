@@ -63,6 +63,11 @@ def load_model():
     return get_recommender()
 
 
+@st.cache_data(ttl=3600, show_spinner=False, max_entries=500)
+def cached_search(query: str) -> list[str]:
+    return load_model().search_titles(query, 10)
+
+
 def short_text(value: Any, length: int = 220) -> str:
     text = " ".join(str(value or "No description available.").split())
     return text if len(text) <= length else f"{text[:length].rsplit(' ', 1)[0]}…"
@@ -167,8 +172,8 @@ with header_left:
     st.markdown('<p class="subhead">Pick a poster to open its story and find movies with a similar feel.</p>', unsafe_allow_html=True)
 with header_right:
     search = st.text_input("Search movies", placeholder="Try Toy Story", label_visibility="collapsed")
-    if search.strip():
-        titles = model.search_titles(search.strip(), 10)
+    if len(search.strip()) >= 2:  # skip 1-letter queries: cheap on CPU, useless results
+        titles = cached_search(search.strip().casefold())
         st.markdown(render_search_suggestions(titles, search.strip()), unsafe_allow_html=True)
 
 if selected_title:
